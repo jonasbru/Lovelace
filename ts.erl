@@ -38,8 +38,8 @@ tsProcessing(Data, Waiting) ->
 					From ! {self(), Ref, inRes, TData},
 					tsProcessing(Data -- [TData],Waiting)				
 			end;
-		{_, _, outReq, T} -> 
-			case processWaiting(Waiting, T) of
+		{From, Ref, outReq, T} -> 
+			case processWaiting(Waiting, {From, Ref, outReq, T}) of
 				false -> tsProcessing(Data ++ [T],Waiting);
 				{From2, Ref2, outReq, T2} ->
 					From2 ! {self(), Ref2, inRes, T2},
@@ -59,10 +59,11 @@ findMatching(T,[TM|Q]) ->
 	end.
 
 processWaiting([],_) -> false;
-processWaiting([H|Q],{From, Req, outReq, T}) ->
-	{_, _, outReq, T2} = H,
+processWaiting([H|Q], P) ->
+	{_, _, outReq, T} = P,
+	{_, _, inReq, T2} = H,
 	case match(T, T2) of
 		true -> H;
-		false -> processWaiting(Q,{From, Req, outReq, T})
+		false -> processWaiting(Q, P)
 	end.
 
