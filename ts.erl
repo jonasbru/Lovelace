@@ -1,5 +1,5 @@
 -module(ts).
--export([match/2, in/2,out/2,new/0,tsProcessing/2 ]).
+-export([match/2, in/2,out/2,new/0,tsProcessing/2, findMatching/2 ]).
 
 match(any,_) -> true;
 match(P,Q) when is_tuple(P), is_tuple(Q)
@@ -32,11 +32,11 @@ tsProcessing(Data, Waiting) ->
 	receive
 		{From, Ref, inReq, T} -> 
 			case findMatching(T,Data) of
-				true -> 
-					From ! {self(), Ref, inRes, T},
-					tsProcessing(Data -- [T],Waiting);
 				false -> %No matching found
-					tsProcessing(Data, Waiting ++ [{From, Ref, inReq, T}]) %Add to the waiting list					
+					tsProcessing(Data, Waiting ++ [{From, Ref, inReq, T}]); %Add to the waiting list	
+				TData -> 
+					From ! {self(), Ref, inRes, TData},
+					tsProcessing(Data -- [TData],Waiting)				
 			end;
 		{_, _, outReq, T} -> 
 			case processWaiting(Waiting, T) of
@@ -54,7 +54,7 @@ tsProcessing(Data, Waiting) ->
 findMatching(_,[]) -> false;
 findMatching(T,[TM|Q]) ->
 	case match(T,TM) of
-		true -> true;
+		true -> TM;
 		false -> findMatching(T,Q)
 	end.
 
